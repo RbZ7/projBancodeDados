@@ -1,0 +1,161 @@
+package projBancodeDados;
+
+import java.sql.SQLException;
+import java.util.InputMismatchException;
+import java.util.List;
+import java.util.Scanner;
+
+public class Principal {
+    public static void main(String[] args) throws SQLException {
+        int op;
+        do {
+            op = menu();
+            switch (op) {
+                case 1 -> adicionaFuncionario();
+                case 2 -> alteraFuncionario();
+                case 3 -> excluiFuncionario();
+                case 4 -> exibeFuncionarios();
+                case 5 -> System.out.println("Programa encerrado.");
+                default -> System.out.println("Opção inválida.");
+            }
+        } while (op != 5);
+    }
+
+    public static int menu() {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("\n--- MENU FUNCIONÁRIOS ---");
+        System.out.println("1 - Adicionar funcionário");
+        System.out.println("2 - Alterar funcionário");
+        System.out.println("3 - Excluir funcionário");
+        System.out.println("4 - Listar funcionários");
+        System.out.println("5 - Sair");
+        System.out.print("Escolha uma opção: ");
+        return entrada.nextInt();
+    }
+
+    public static boolean contemNumero(String texto) {
+        return texto.matches(".*\\d.*");
+    }
+
+    public static void exibeFuncionarios() throws SQLException {
+        FuncionarioDAO dao = new FuncionarioDAO();
+        List<Funcionario> funcionarios = dao.getLista();
+        for (Funcionario f : funcionarios) {
+            System.out.println("ID: " + f.getIdFuncionario());
+            System.out.println("Nome: " + f.getNome());
+            System.out.println("Cargo: " + f.getCargo());
+            System.out.println("Data de Admissão: " + f.getDataAdmissao());
+            System.out.println("Salário: R$ " + f.getSalario());
+            System.out.println("-----------------------------");
+        }
+    }
+
+    public static void adicionaFuncionario() throws SQLException {
+        Scanner entrada = new Scanner(System.in);
+        FuncionarioDAO dao = new FuncionarioDAO();
+        Funcionario f = new Funcionario();
+
+        try {
+            System.out.println("Nome: ");
+            String nome = entrada.nextLine();
+            if (nome.trim().isEmpty() || contemNumero(nome)) {
+                System.out.println("Nome inválido.");
+                return;
+            }
+            f.setNome(nome);
+
+            System.out.println("Cargo: ");
+            String cargo = entrada.nextLine();
+            if (cargo.trim().isEmpty() || contemNumero(cargo)) {
+                System.out.println("Cargo inválido.");
+                return;
+            }
+            f.setCargo(cargo);
+
+            System.out.println("Data de Admissão (AAAA-MM-DD): ");
+            f.setDataAdmissao(entrada.nextLine());
+
+            System.out.println("Salário: ");
+            double salario = entrada.nextDouble();
+            if (salario <= 0) {
+                System.out.println("Salário inválido.");
+                return;
+            }
+            f.setSalario(salario);
+
+            dao.adicionar(f);
+        } catch (InputMismatchException e) {
+            System.out.println("Erro de digitação.");
+        }
+    }
+
+    public static void excluiFuncionario() throws SQLException {
+        Scanner entrada = new Scanner(System.in);
+        FuncionarioDAO dao = new FuncionarioDAO();
+        Funcionario f = new Funcionario();
+
+        try {
+            System.out.println("Digite o ID do funcionário: ");
+            f.setIdFuncionario(entrada.nextInt());
+            dao.apagar(f);
+        } catch (InputMismatchException e) {
+            System.out.println("Erro: tipo de dado inválido.");
+        }
+    }
+
+    public static void alteraFuncionario() throws SQLException {
+        Scanner entrada = new Scanner(System.in);
+        FuncionarioDAO dao = new FuncionarioDAO();
+        Funcionario f = new Funcionario();
+
+        try {
+            System.out.println("Digite o ID do funcionário que deseja alterar:");
+            int id = entrada.nextInt();
+            f.setIdFuncionario(id);
+            entrada.nextLine();
+
+            System.out.println("Alterar nome? (S/N)");
+            if (entrada.nextLine().equalsIgnoreCase("S")) {
+                System.out.println("Novo nome:");
+                String nome = entrada.nextLine();
+                if (nome.trim().isEmpty() || contemNumero(nome)) {
+                    System.out.println("Nome inválido.");
+                    return;
+                }
+                f.setNome(nome);
+            }
+
+            System.out.println("Alterar cargo? (S/N)");
+            if (entrada.nextLine().equalsIgnoreCase("S")) {
+                System.out.println("Novo cargo:");
+                String cargo = entrada.nextLine();
+                if (cargo.trim().isEmpty() || contemNumero(cargo)) {
+                    System.out.println("Cargo inválido.");
+                    return;
+                }
+                f.setCargo(cargo);
+            }
+
+            System.out.println("Alterar data de admissão? (S/N)");
+            if (entrada.nextLine().equalsIgnoreCase("S")) {
+                System.out.println("Nova data (AAAA-MM-DD):");
+                f.setDataAdmissao(entrada.nextLine());
+            }
+
+            System.out.println("Alterar salário? (S/N)");
+            if (entrada.nextLine().equalsIgnoreCase("S")) {
+                System.out.println("Novo salário:");
+                double salario = entrada.nextDouble();
+                if (salario <= 0) {
+                    System.out.println("Salário inválido.");
+                    return;
+                }
+                f.setSalario(salario);
+            }
+
+            dao.alterar(f);
+        } catch (InputMismatchException e) {
+            System.out.println("Erro: tipo de dado inválido.");
+        }
+    }
+}
