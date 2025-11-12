@@ -1,0 +1,149 @@
+package projBancodeDados;
+
+import conexao.ConnectionFactory;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FuncionarioDAO {
+
+    private Connection conexao;
+
+    public FuncionarioDAO() {
+        try {
+            conexao = ConnectionFactory.getConnection();
+            System.out.println("✅ Conectado ao banco com sucesso!");
+        } catch (SQLException e) {
+            System.out.println("❌ Erro ao conectar: " + e.getMessage());
+        }
+    }
+    boolean idExiste(int id) throws SQLException {
+        String sql = "SELECT idFuncionario FROM Funcionario WHERE idFuncionario = ?";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+        stmt.setInt(1, id);
+        ResultSet rs = stmt.executeQuery();
+
+        boolean existe = rs.next();
+
+        rs.close();
+        stmt.close();
+
+        return existe;
+    }
+    private void reorganizarIds() throws SQLException {
+
+        System.out.println("🔄 Reorganizando IDs...");
+
+        String sqlTemp = """
+            CREATE TEMPORARY TABLE temp_func AS
+            SELECT nome, cargo, dataAdmissao, salario
+            FROM Funcionario
+            ORDER BY idFuncionario;
+        """;
+        PreparedStatement stmt1 = conexao.prepareStatement(sqlTemp);
+        stmt1.executeUpdate();
+        stmt1.close();
+
+        PreparedStatement stmt2 = conexao.prepareStatement("DELETE FROM Funcionario");
+        stmt2.executeUpdate();
+        stmt2.close();
+
+        PreparedStatement stmt3 = conexao.prepareStatement("ALTER TABLE Funcionario AUTO_INCREMENT = 1");
+        stmt3.executeUpdate();
+        stmt3.close();
+
+        String sqlInsert = """
+            INSERT INTO Funcionario (nome, cargo, dataAdmissao, salario)
+            SELECT nome, cargo, dataAdmissao, salario FROM temp_func;
+        """;
+        PreparedStatement stmt4 = conexao.prepareStatement(sqlInsert);
+        stmt4.executeUpdate();
+        stmt4.close();
+
+        PreparedStatement stmt5 = conexao.prepareStatement("DROP TEMPORARY TABLE temp_func");
+        stmt5.executeUpdate();
+        stmt5.close();
+
+        System.out.println("✅ IDs reorganizados com sucesso!");
+    }
+
+    public void adicionar(Funcionario f) throws SQLException {
+        String sql = "INSERT INTO Funcionario (nome, cargo, dataAdmissao, salario) VALUES (?, ?, ?, ?)";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+
+        stmt.setString(1, f.getNome());
+        stmt.setString(2, f.getCargo());
+        stmt.setString(3, f.getDataAdmissao());
+        stmt.setDouble(4, f.getSalario());
+
+        stmt.executeUpdate();
+        stmt.close();
+
+        System.out.println("✅ Funcionário adicionado com sucesso!");
+    }
+
+    public void alterar(Funcionario f) throws SQLException {
+
+        if (!idExiste(f.getIdFuncionario())) {
+            System.out.println("❌ ERRO: O ID informado não existe. Alteração cancelada.");
+            return; 
+        }
+
+        String sql = "UPDATE Funcionario SET nome=?, cargo=?, dataAdmissao=?, salario=? WHERE idFuncionario=?";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+
+        stmt.setString(1, f.getNome());
+        stmt.setString(2, f.getCargo());
+        stmt.setString(3, f.getDataAdmissao());
+        stmt.setDouble(4, f.getSalario());
+        stmt.setInt(5, f.getIdFuncionario());
+
+        stmt.executeUpdate();
+        stmt.close();
+
+        System.out.println("✅ Funcionário atualizado com sucesso!");
+    }
+
+    public void apagar(Funcionario f) throws SQLException {
+
+        if (!idExiste(f.getIdFuncionario())) {
+            System.out.println("❌ ERRO: O ID informado não existe. Exclusão cancelada.");
+            return;
+        }
+
+        String sql = "DELETE FROM Funcionario WHERE idFuncionario=?";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+
+        stmt.setInt(1, f.getIdFuncionario());
+        stmt.executeUpdate();
+        stmt.close();
+
+        System.out.println("🗑 Funcionário excluído com sucesso!");
+
+        reorganizarIds();
+    }
+
+    public List<Funcionario> getLista() throws SQLException {
+        List<Funcionario> lista = new ArrayList<>();
+
+        String sql = "SELECT * FROM Funcionario ORDER BY idFuncionario";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+
+        while (rs.next()) {
+            Funcionario f = new Funcionario();
+            f.setIdFuncionario(rs.getInt("idFuncionario"));
+            f.setNome(rs.getString("nome"));
+            f.setCargo(rs.getString("cargo"));
+            f.setDataAdmissao(rs.getString("dataAdmissao"));
+            f.setSalario(rs.getDouble("salario"));
+
+            lista.add(f);
+        }
+
+        rs.close();
+        stmt.close();
+
+        return lista;
+    }
+}
